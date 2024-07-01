@@ -23,6 +23,18 @@ class QuerySearchProcessorTest extends TestCase
         $this->assertEquals('select * from "simples"', Simple::processQuery($request)->toSql());
     }
 
+    public function testLoneWithInclusion()
+    {
+        $request = new Request([
+            '_with' => 'parent',
+        ]);
+
+        $this->assertEquals(
+            'select * from "simples" left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id"',
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
     public function testSimpleGenericQuery()
     {
         $request = new Request([

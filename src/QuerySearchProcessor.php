@@ -119,7 +119,9 @@ trait QuerySearchProcessor {
                 foreach(explode('.', $relationshipChain) as $relationship) {
                     $class = $model->{$relationship}()->getRelated();
                     $model = new $class();
-                    $this->addGeneralQueryMapping($model, $param);
+                    foreach(array_keys($this->generalQueryParams) as $param) {
+                        $this->addGeneralQueryMapping($model, $param);
+                    }
                 }
             }
         }
