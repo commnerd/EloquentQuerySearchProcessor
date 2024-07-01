@@ -1,0 +1,26 @@
+{
+    "name": "commnerd/eloquent-query-search-processor",
+    "description": "Craft more complex eloquent searches based on query data passed in from http request parameters",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "^11.2",
+        "orchestra/testbench": "^9.1"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Commnerd\\QuerySearchProcessor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Michael J. Miller"
+        }
+    ],
+    "minimum-stability": "stable"
+}
