@@ -262,15 +262,17 @@ trait QuerySearchProcessor {
 
     private function queryGeneralSearchTerms(): void
     {
-        foreach($this->generalQueryMappings as $var => $modelArray) {
-            if(isset($this->toolQueryParams['_with'])) {
-                $this->builder->where(function ($builder) use ($var, $modelArray) {
+        if(isset($this->toolQueryParams['_with'])) {
+            $this->builder->where(function ($builder) {
+                foreach($this->generalQueryMappings as $var => $modelArray) {
                     foreach($modelArray as $model) {
-                        $this->addWhere($builder, $model, $model->getTable().'.'.$var, $this->generalQueryParams[$var], 'or');
+                        $this->addWhere($builder, $model, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
                     }
-                });
-            }
-            else {
+                }
+            });
+        }
+        else {
+            foreach($this->generalQueryMappings as $var => $modelArray) {
                 $model = new static;
                 $this->addWhere($this->builder, $model, $var, $this->generalQueryParams[$var]);
             }

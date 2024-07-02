@@ -154,4 +154,27 @@ class QuerySearchProcessorTest extends TestCase
             Simple::processQuery($request)->toSql()
         );
     }
+
+    public function testComplexGenericQueryWithOrdering()
+    {
+        $request = new Request([
+            '_with' => 'parent.grandparent',
+            '_orderBy' => 'due_date',
+            '_order' => 'desc',
+            'simple_completed' => 'false',
+            'name' => '~some~',
+            'due_date' => '~some~',
+        ]);
+
+        $expected = 'select * from "simples" '.
+                    'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
+                    'left join "grand_parent_nodes" on "parent_nodes"."grand_parent_node_id" = "grand_parent_nodes"."id" '.
+                    'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "grand_parent_nodes"."name" like ? '.
+                    'or "parent_nodes"."due_date" like ?)';
+
+        $this->assertEquals(
+            $expected,
+            Simple::processQuery($request)->toSql()
+        );
+    }
 }

@@ -9,6 +9,7 @@ class ParentNode extends Model
     protected $fillable = [
         'name',
         'parent_input',
+        'due_date'
     ];
 
     public function grandparent(): BelongsTo
