@@ -30,7 +30,7 @@ class QuerySearchProcessorTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'select * from "simples" left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id"',
+            'select * from "simples"',
             Simple::processQuery($request)->toSql()
         );
     }

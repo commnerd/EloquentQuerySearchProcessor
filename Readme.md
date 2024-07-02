@@ -63,5 +63,5 @@ as support for 'Has' functions, which will need to be right-joined.
 ## Testing
 To run test suite, run the following:
 ```bash
- php vendor/bin/phpunit tests/Unit/QuerySearchProcessorTest.php
+php vendor/bin/phpunit tests/Unit/QuerySearchProcessorTest.php
 ```

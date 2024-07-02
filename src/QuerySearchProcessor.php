@@ -161,8 +161,10 @@ trait QuerySearchProcessor {
     {
         $this->buildGeneralQueryMappings();
         if(isset($this->toolQueryParams['_with'])) {
-            $this->builder->with($this->toolQueryParams['_with']);
-            $this->addJoins();
+            $this->builder->with(explode(',',$this->toolQueryParams['_with']));
+            if(sizeof($this->generalQueryParams) > 0) {
+                $this->addJoins();
+            }
         }
     }
 
