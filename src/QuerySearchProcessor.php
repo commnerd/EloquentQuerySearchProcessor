@@ -67,6 +67,12 @@ trait QuerySearchProcessor {
         return $this->builder->toSql();
     }
 
+    private function addGeneralQueryMapping(Model $model, string $param) {
+        if(in_array($param, $model->getSearchColumns())) {
+            array_push($this->generalQueryMappings[$param], $model);
+        }
+    }
+
     private function addJoin(Model $model, Relation $relationship) {
         $rightKey = '';
         $leftTable = '';
@@ -127,10 +133,13 @@ trait QuerySearchProcessor {
         }
     }
 
-    private function addGeneralQueryMapping(Model $model, string $param) {
-        if(in_array($param, $model->getFillable())) {
-            array_push($this->generalQueryMappings[$param], $model);
+    private function disambiguateFirstOrderFields() {
+        $selects = [];
+        foreach($this->getSearchColumns() as $column) {
+            $selects[] = $this->getTable().'.'.$column.' as '.$this->getTable().'_'.$column;
         }
+        $selects[] = $this->getTable().'.*';
+        $this->builder->select($selects);
     }
 
     /**
@@ -145,6 +154,11 @@ trait QuerySearchProcessor {
         $this->request = $request;
         $this->builder = $this->newQuery();
         $this->processSearch();
+    }
+
+    private function getSearchColumns()
+    {
+        return $this->getFillable();
     }
 
     private function getTableFromClass(Model $class): string
@@ -163,6 +177,7 @@ trait QuerySearchProcessor {
         if(isset($this->toolQueryParams['_with'])) {
             $this->builder->with(explode(',',$this->toolQueryParams['_with']));
             if(sizeof($this->generalQueryParams) > 0) {
+                $this->disambiguateFirstOrderFields();
                 $this->addJoins();
             }
         }
@@ -201,7 +216,7 @@ trait QuerySearchProcessor {
         }
         $instance = new $class();
 
-        if(in_array($key, $instance->getFillable())) {
+        if(in_array($key, $instance->getSearchColumns())) {
             return array($instance, $key);
         }
 

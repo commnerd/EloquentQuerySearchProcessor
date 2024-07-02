@@ -128,7 +128,8 @@ class QuerySearchProcessorTest extends TestCase
             'name' => 'something~',
         ]);
 
-        $expected = 'select * from "simples" left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
+        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
+                    'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
                     'where ("simples"."name" like ? or "parent_nodes"."name" like ?)';
 
         $this->assertEquals(
@@ -144,10 +145,10 @@ class QuerySearchProcessorTest extends TestCase
             'name' => 'something~',
         ]);
 
-        $expected = 'select * from "simples" '.
-            'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
-            'left join "grand_parent_nodes" on "parent_nodes"."grand_parent_node_id" = "grand_parent_nodes"."id" '.
-            'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "grand_parent_nodes"."name" like ?)';
+        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
+                    'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
+                    'left join "grand_parent_nodes" on "parent_nodes"."grand_parent_node_id" = "grand_parent_nodes"."id" '.
+                    'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "grand_parent_nodes"."name" like ?)';
 
         $this->assertEquals(
             $expected,
@@ -166,7 +167,7 @@ class QuerySearchProcessorTest extends TestCase
             'due_date' => '~some~',
         ]);
 
-        $expected = 'select * from "simples" '.
+        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
                     'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
                     'left join "grand_parent_nodes" on "parent_nodes"."grand_parent_node_id" = "grand_parent_nodes"."id" '.
                     'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "grand_parent_nodes"."name" like ? '.
