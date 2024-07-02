@@ -166,6 +166,11 @@ trait QuerySearchProcessor {
                 $this->addJoins();
             }
         }
+        if(isset($this->toolQueryParams['_orderBy']) && !is_null($mapping = $this->mapKeyToHost($this->toolQueryParams['_orderBy']))) {
+            list($model, $var) = $mapping;
+            $direction = strtolower($this->toolQueryParams['_order'] ?? 'asc') == 'desc' ? 'desc' : 'asc';
+            $this->builder->orderBy($model->getTable().'.'.$var, $direction);
+        }
     }
 
     private function joinHierarchy(string $hierarchy): void

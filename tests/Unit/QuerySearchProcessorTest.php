@@ -35,6 +35,44 @@ class QuerySearchProcessorTest extends TestCase
         );
     }
 
+    public function testSimpleOrderQuery()
+    {
+        $request = new Request([
+            '_orderBy' => 'input',
+        ]);
+
+        $this->assertEquals(
+            'select * from "simples" order by "simples"."input" asc',
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
+    public function testGarbageOrderQuery()
+    {
+        $request = new Request([
+            '_orderBy' => 'input',
+            '_order' => 'garbage',
+        ]);
+
+        $this->assertEquals(
+            'select * from "simples" order by "simples"."input" asc',
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
+    public function testDescendingOrderQuery()
+    {
+        $request = new Request([
+            '_orderBy' => 'input',
+            '_order' => 'desc',
+        ]);
+
+        $this->assertEquals(
+            'select * from "simples" order by "simples"."input" desc',
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
     public function testSimpleGenericQuery()
     {
         $request = new Request([
