@@ -68,7 +68,7 @@ trait QuerySearchProcessor {
     }
 
     private function addGeneralQueryMapping(Model $model, string $param) {
-        if(in_array($param, $model->getSearchColumns())) {
+        if(method_exists($model, 'getSearchColumns') && in_array($param, $model->getSearchColumns())) {
             array_push($this->generalQueryMappings[$param], $model);
         }
     }
