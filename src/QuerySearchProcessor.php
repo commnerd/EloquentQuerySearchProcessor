@@ -123,10 +123,12 @@ trait QuerySearchProcessor {
         if(isset($this->toolQueryParams['_with'])) {
             foreach(explode(',', $this->toolQueryParams['_with']) as $relationshipChain) {
                 foreach(explode('.', $relationshipChain) as $relationship) {
-                    $class = $model->{$relationship}()->getRelated();
-                    $model = new $class();
-                    foreach(array_keys($this->generalQueryParams) as $param) {
-                        $this->addGeneralQueryMapping($model, $param);
+                    if(method_exists($model, $relationship)) {
+                        $class = $model->{$relationship}()->getRelated();
+                        $model = new $class();
+                        foreach(array_keys($this->generalQueryParams) as $param) {
+                            $this->addGeneralQueryMapping($model, $param);
+                        }
                     }
                 }
             }
