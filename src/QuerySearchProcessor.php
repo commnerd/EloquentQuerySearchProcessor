@@ -122,6 +122,7 @@ trait QuerySearchProcessor {
 
         if(isset($this->toolQueryParams['_with'])) {
             foreach(explode(',', $this->toolQueryParams['_with']) as $relationshipChain) {
+                $model = new static;
                 foreach(explode('.', $relationshipChain) as $relationship) {
                     if(method_exists($model, $relationship)) {
                         $class = $model->{$relationship}()->getRelated();

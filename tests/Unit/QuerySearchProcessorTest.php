@@ -156,6 +156,24 @@ class QuerySearchProcessorTest extends TestCase
         );
     }
 
+    public function testGenericQueryWithParallelRelation()
+    {
+        $request = new Request([
+            '_with' => 'parent,other_parent',
+            'name' => 'something~',
+        ]);
+
+        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
+            'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
+            'left join "other_parent_nodes" on "simples"."other_parent_id" = "other_parent_nodes"."id" '.
+            'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "other_parent_nodes"."name" like ?)';
+
+        $this->assertEquals(
+            $expected,
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
     public function testComplexGenericQueryWithOrdering()
     {
         $request = new Request([

@@ -16,4 +16,9 @@ class Simple extends Model
     {
         return $this->belongsTo(ParentNode::class);
     }
+
+    public function other_parent(): BelongsTo
+    {
+        return $this->belongsTo(OtherParentNode::class);
+    }
 }
