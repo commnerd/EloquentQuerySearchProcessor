@@ -330,16 +330,8 @@ trait QuerySearchProcessor {
     {
         if($val === 'true') return true;
         if($val === 'false') return false;
-        if(is_numeric($val)) {
-            if($val == (int)$val) {
-                return (int)$val;
-            }
-            if($val == (float)$val) {
-                return (float)$val;
-            }
-        }
 
-        return $val;
+        return (string)$val;
     }
 
     /**
