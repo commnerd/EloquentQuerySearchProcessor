@@ -18,53 +18,13 @@ trait QuerySearchProcessor {
     private array $toolQueryParams = [];
     private Request $request;
 
-    public static function processQuery(Request $request): Model
+    public static function processQuery(Request $request): Builder
     {
         $instance = new static;
         if(!$instance instanceof Model) {
             throw new NonModelException('This trait can only be used on Eloquent Models');
         }
-        $instance->entrypoint($request);
-        return $instance;
-    }
-
-    /**
-     * Execute the query as a "select" statement.
-     * (runs locally-crafted builder get function)
-     *
-     * @param  array|string  $columns
-     * @return \Illuminate\Database\Eloquent\Collection|static[]
-     */
-    public function get($columns = ['*'])
-    {
-        return $this->builder->get($columns);
-    }
-
-    /**
-     * Paginate the given query.
-     *
-     * @param  int|null|\Closure  $perPage
-     * @param  array|string  $columns
-     * @param  string  $pageName
-     * @param  int|null  $page
-     * @param  \Closure|int|null  $total
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
-     *
-     * @throws \InvalidArgumentException
-     */
-    public function paginate($perPage = null, $columns = ['*'], $pageName = 'page', $page = null, $total = null)
-    {
-        return $this->builder->paginate($perPage, $columns, $pageName, $page, $total);
-    }
-
-    /**
-     * This is a testing tool used to help us hone our queries
-     *
-     * @return string
-     */
-    public function toSql(): string
-    {
-        return $this->builder->toSql();
+        return $instance->entrypoint($request);
     }
 
     private function addGeneralQueryMapping(Model $model, string $param) {
@@ -74,15 +34,11 @@ trait QuerySearchProcessor {
     }
 
     private function addJoin(Model $model, Relation $relationship) {
-        $rightKey = '';
-        $leftTable = '';
-        $leftKey = '';
-
-            $leftTable = $model->getTable();
-            $leftKey = $relationship->getForeignKeyName();
-            $rightClass = $relationship->getRelated();
-            $rightTable = $rightClass->getTable();
-            $rightKey = $rightClass->getKeyName();
+        $leftTable = $model->getTable();
+        $leftKey = $relationship->getForeignKeyName();
+        $rightClass = $relationship->getRelated();
+        $rightTable = $rightClass->getTable();
+        $rightKey = $rightClass->getKeyName();
         if($relationship instanceof BelongsTo) {
             $this->builder->leftJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
         }
@@ -153,14 +109,15 @@ trait QuerySearchProcessor {
      * Initialize the search building process and kick it off
      *
      * @param Request $request
-     * @return void
+     * @return Builder
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
-    private function entrypoint(Request $request)
+    private function entrypoint(Request $request): Builder
     {
         $this->request = $request;
         $this->builder = $this->newQuery();
         $this->processSearch();
+        return $this->builder;
     }
 
     private function getSearchColumns()
