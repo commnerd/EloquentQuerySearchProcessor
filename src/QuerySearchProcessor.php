@@ -77,14 +77,18 @@ trait QuerySearchProcessor {
         $rightKey = '';
         $leftTable = '';
         $leftKey = '';
-        if($relationship instanceof BelongsTo) {
+
             $leftTable = $model->getTable();
             $leftKey = $relationship->getForeignKeyName();
             $rightClass = $relationship->getRelated();
             $rightTable = $rightClass->getTable();
             $rightKey = $rightClass->getKeyName();
+        if($relationship instanceof BelongsTo) {
+            $this->builder->leftJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
         }
-        $this->builder->leftJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
+        else {
+            $this->builder->rightJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
+        }
     }
 
     private function addJoins(): void

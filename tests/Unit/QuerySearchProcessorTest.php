@@ -174,6 +174,24 @@ class QuerySearchProcessorTest extends TestCase
         );
     }
 
+    public function testHasManyQuery()
+    {
+        $request = new Request([
+            '_with' => 'parent.other',
+            'something' => '~blah'
+        ]);
+
+        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
+            'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
+            'right join "another_models" on "parent_nodes"."parent_node_id" = "another_models"."id" '.
+            'where ("another_models"."something" like ?)';
+
+        $this->assertEquals(
+            $expected,
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
     public function testComplexGenericQueryWithOrdering()
     {
         $request = new Request([
