@@ -16,6 +16,7 @@ trait QuerySearchProcessor {
     private array $joins = [];
     private array $namespacedQueryParams = [];
     private array $toolQueryParams = [];
+    private array $tableNameIterationTracker = [];
     private Request $request;
 
     public static function processQuery(Request $request): Builder
@@ -38,9 +39,14 @@ trait QuerySearchProcessor {
         $leftKey = $relationship->getForeignKeyName();
         $rightClass = $relationship->getRelated();
         $rightTable = $rightClass->getTable();
+        $rightIteratedTableName = $this->getIteratedTableName($rightTable);
         $rightKey = $rightClass->getKeyName();
         if($relationship instanceof BelongsTo) {
-            $this->builder->leftJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
+            $this->builder->leftJoin($rightTable.' as '.$rightIteratedTableName,
+                $leftTable.'.'.$leftKey,
+                "=",
+                $rightTable.'.'.$rightKey
+            );
         }
         else {
             $this->builder->rightJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
@@ -245,6 +251,11 @@ trait QuerySearchProcessor {
             $this->builder->where(function ($builder) {
                 foreach($this->generalQueryMappings as $var => $modelArray) {
                     foreach($modelArray as $model) {
+                        if(isset($this->tableNameIterationTracker[$model->getTable()])) {
+                            foreach(range(1, $this->tableNameIterationTracker[$model->getTable()] - 1) as $index) {
+                                $this->addWhere($builder, $model, $model->getTable()."_$index" . '.' . $var, $this->generalQueryParams[$var], 'or');
+                            }
+                        }
                         $this->addWhere($builder, $model, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
                     }
                 }
@@ -313,5 +324,14 @@ trait QuerySearchProcessor {
                 $this->generalQueryParams[$key] = $val;
             }
         }
+    }
+
+    private function getIteratedTableName(string $table): string
+    {
+        if(!isset($this->tableNameIterationTracker[$table])) {
+            $this->tableNameIterationTracker[$table] = 1;
+        }
+
+        return "$table"."_".$this->tableNameIterationTracker[$table]++;
     }
 }
