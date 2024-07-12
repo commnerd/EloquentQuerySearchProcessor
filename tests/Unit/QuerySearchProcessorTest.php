@@ -1,7 +1,8 @@
 <?php
 
+namespace Tests\Unit;
+
 use Illuminate\Http\Request;
-use Orchestra\Testbench\TestCase;
 use Tests\Models\{NonModelClass, Simple};
 use Commnerd\QuerySearchProcessor\NonModelException;
 

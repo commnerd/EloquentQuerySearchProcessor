@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 trait QuerySearchProcessor {
-    private Builder $builder;
+    private Builder $instanceBuilder;
     private string $classQueryNamespace;
     private array $generalQueryParams = [];
     private array $generalQueryMappings = [];
@@ -40,10 +40,10 @@ trait QuerySearchProcessor {
         $rightTable = $rightClass->getTable();
         $rightKey = $rightClass->getKeyName();
         if($relationship instanceof BelongsTo) {
-            $this->builder->leftJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
+            $this->instanceBuilder->leftJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
         }
         else {
-            $this->builder->rightJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
+            $this->instanceBuilder->rightJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
         }
     }
 
@@ -102,7 +102,7 @@ trait QuerySearchProcessor {
             $selects[] = $this->getTable().'.'.$column.' as '.$this->getTable().'_'.$column;
         }
         $selects[] = $this->getTable().'.*';
-        $this->builder->select($selects);
+        $this->instanceBuilder->select($selects);
     }
 
     /**
@@ -115,9 +115,9 @@ trait QuerySearchProcessor {
     private function entrypoint(Request $request): Builder
     {
         $this->request = $request;
-        $this->builder = $this->newQuery();
+        $this->instanceBuilder = $this->newQuery();
         $this->processSearch();
-        return $this->builder;
+        return $this->instanceBuilder;
     }
 
     private function getSearchColumns()
@@ -139,7 +139,7 @@ trait QuerySearchProcessor {
     {
         $this->buildGeneralQueryMappings();
         if(isset($this->toolQueryParams['_with'])) {
-            $this->builder->with(explode(',',$this->toolQueryParams['_with']));
+            $this->instanceBuilder->with(explode(',',$this->toolQueryParams['_with']));
             if(sizeof($this->generalQueryParams) > 0) {
                 $this->disambiguateFirstOrderFields();
                 $this->addJoins();
@@ -148,7 +148,7 @@ trait QuerySearchProcessor {
         if(isset($this->toolQueryParams['_orderBy']) && !is_null($mapping = $this->mapKeyToHost($this->toolQueryParams['_orderBy']))) {
             list($model, $var) = $mapping;
             $direction = strtolower($this->toolQueryParams['_order'] ?? 'asc') == 'desc' ? 'desc' : 'asc';
-            $this->builder->orderBy($model->getTable().'.'.$var, $direction);
+            $this->instanceBuilder->orderBy($model->getTable().'.'.$var, $direction);
         }
     }
 
@@ -242,7 +242,7 @@ trait QuerySearchProcessor {
     private function queryGeneralSearchTerms(): void
     {
         if(isset($this->toolQueryParams['_with'])) {
-            $this->builder->where(function ($builder) {
+            $this->instanceBuilder->where(function ($builder) {
                 foreach($this->generalQueryMappings as $var => $modelArray) {
                     foreach($modelArray as $model) {
                         $this->addWhere($builder, $model, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
@@ -253,7 +253,7 @@ trait QuerySearchProcessor {
         else {
             foreach($this->generalQueryMappings as $var => $modelArray) {
                 $model = new static;
-                $this->addWhere($this->builder, $model, $var, $this->generalQueryParams[$var]);
+                $this->addWhere($this->instanceBuilder, $model, $var, $this->generalQueryParams[$var]);
             }
         }
     }
@@ -265,7 +265,7 @@ trait QuerySearchProcessor {
         foreach($this->namespacedQueryParams as $key => $value) {
             if(!is_null($mapping = $this->mapKeyToHost(substr($key, strlen($this->classQueryNamespace.'_')), $instance))) {
                 list($model, $var) = $mapping;
-                $this->addWhere($this->builder, $model, $var, $value);
+                $this->addWhere($this->instanceBuilder, $model, $var, $value);
             }
         }
     }

@@ -1,2 +1,4 @@
+bootstrap/cache/*
+storage/
 vendor/
 .idea/
