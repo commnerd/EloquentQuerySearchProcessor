@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Commnerd\QuerySearchProcessor\ConflictingParametersException;
 use Illuminate\Http\Request;
 use Tests\Models\{NonModelClass, Simple};
 use Commnerd\QuerySearchProcessor\NonModelException;
@@ -59,6 +60,18 @@ class QuerySearchProcessorTest extends TestCase
             'select * from "simples" order by "simples"."input" asc',
             Simple::processQuery($request)->toSql()
         );
+    }
+
+    public function testException()
+    {
+        $this->expectException(ConflictingParametersException::class);
+
+        $request = new Request([
+            '_orderBy' => 'input',
+            '_orderRandom' => true,
+        ]);
+
+        Simple::processQuery($request)->toSql();
     }
 
     public function testDescendingOrderQuery()

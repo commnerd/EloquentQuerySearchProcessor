@@ -160,6 +160,12 @@ trait QuerySearchProcessor {
             list($model, $var) = $mapping;
             $direction = strtolower($this->toolQueryParams['_order'] ?? 'asc') == 'desc' ? 'desc' : 'asc';
             $this->instanceBuilder->orderBy($model->getTable().'.'.$var, $direction);
+            if(isset($this->toolQueryParams['_orderRandom'])) {
+                throw new ConflictingParametersException('Cannot use both _orderBy and _orderRandom');
+            }
+        }
+        if(isset($this->toolQueryParams['_orderRandom'])) {
+
         }
     }
 
