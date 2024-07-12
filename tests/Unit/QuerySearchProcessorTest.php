@@ -130,8 +130,8 @@ class QuerySearchProcessorTest extends TestCase
         ]);
 
         $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-                    'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
-                    'where ("simples"."name" like ? or "parent_nodes"."name" like ?)';
+                    'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
+                    'where ("simples"."name" like ? or "parent_nodes_1"."name" like ?)';
 
         $this->assertEquals(
             $expected,
@@ -147,9 +147,9 @@ class QuerySearchProcessorTest extends TestCase
         ]);
 
         $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-                    'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
-                    'left join "grand_parent_nodes" on "parent_nodes"."grand_parent_node_id" = "grand_parent_nodes"."id" '.
-                    'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "grand_parent_nodes"."name" like ?)';
+                    'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
+                    'left join "grand_parent_nodes" as "grand_parent_nodes_1" on "parent_nodes_1"."grand_parent_node_id" = "grand_parent_nodes_1"."id" '.
+                    'where ("simples"."name" like ? or "parent_nodes_1"."name" like ? or "grand_parent_nodes_1"."name" like ?)';
 
         $this->assertEquals(
             $expected,
@@ -165,9 +165,9 @@ class QuerySearchProcessorTest extends TestCase
         ]);
 
         $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-            'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
-            'left join "other_parent_nodes" on "simples"."other_parent_id" = "other_parent_nodes"."id" '.
-            'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "other_parent_nodes"."name" like ?)';
+            'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
+            'left join "other_parent_nodes" as "other_parent_nodes_1" on "simples"."other_parent_id" = "other_parent_nodes_1"."id" '.
+            'where ("simples"."name" like ? or "parent_nodes_1"."name" like ? or "other_parent_nodes_1"."name" like ?)';
 
         $this->assertEquals(
             $expected,
@@ -183,9 +183,9 @@ class QuerySearchProcessorTest extends TestCase
         ]);
 
         $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-            'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
-            'right join "another_models" on "parent_nodes"."parent_node_id" = "another_models"."id" '.
-            'where ("another_models"."something" like ?)';
+            'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
+            'right join "another_models_1" on "parent_nodes_1"."parent_node_id" = "another_models_1"."id" '.
+            'where ("another_models_1"."something" like ?)';
 
         $this->assertEquals(
             $expected,
@@ -205,10 +205,10 @@ class QuerySearchProcessorTest extends TestCase
         ]);
 
         $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-                    'left join "parent_nodes" on "simples"."parent_id" = "parent_nodes"."id" '.
-                    'left join "grand_parent_nodes" on "parent_nodes"."grand_parent_node_id" = "grand_parent_nodes"."id" '.
-                    'where ("simples"."name" like ? or "parent_nodes"."name" like ? or "grand_parent_nodes"."name" like ? '.
-                    'or "parent_nodes"."due_date" like ?)';
+                    'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
+                    'left join "grand_parent_nodes" as "grand_parent_nodes_1" on "parent_nodes_1"."grand_parent_node_id" = "grand_parent_nodes_1"."id" '.
+                    'where ("simples"."name" like ? or "parent_nodes_1"."name" like ? or "grand_parent_nodes_1"."name" like ? '.
+                    'or "parent_nodes_1"."due_date" like ?)';
 
         $this->assertEquals(
             $expected,

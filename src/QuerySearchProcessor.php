@@ -17,6 +17,7 @@ trait QuerySearchProcessor {
     private array $namespacedQueryParams = [];
     private array $toolQueryParams = [];
     private array $tableNameIterationTracker = [];
+    private string $baseTable;
     private Request $request;
 
     public static function processQuery(Request $request): Builder
@@ -35,21 +36,25 @@ trait QuerySearchProcessor {
     }
 
     private function addJoin(Model $model, Relation $relationship) {
-        $leftTable = $model->getTable();
+        $leftTable = $this->getIteratedTableName($model->getTable(), retrievePrev: true);
         $leftKey = $relationship->getForeignKeyName();
         $rightClass = $relationship->getRelated();
         $rightTable = $rightClass->getTable();
-        $rightIteratedTableName = $this->getIteratedTableName($rightTable);
+        $rightIteratedTableName = $this->getIteratedTableName($rightTable, true);
         $rightKey = $rightClass->getKeyName();
         if($relationship instanceof BelongsTo) {
             $this->instanceBuilder->leftJoin($rightTable.' as '.$rightIteratedTableName,
                 $leftTable.'.'.$leftKey,
                 "=",
-                $rightTable.'.'.$rightKey
+                $rightIteratedTableName.'.'.$rightKey
             );
         }
         else {
-            $this->instanceBuilder->rightJoin($rightTable,$leftTable.'.'.$leftKey,"=",$rightTable.'.'.$rightKey);
+            $this->instanceBuilder->rightJoin($rightIteratedTableName,
+                $leftTable.'.'.$leftKey,
+                "=",
+                $rightIteratedTableName.'.'.$rightKey
+            );
         }
     }
 
@@ -256,7 +261,9 @@ trait QuerySearchProcessor {
                                 $this->addWhere($builder, $model, $model->getTable()."_$index" . '.' . $var, $this->generalQueryParams[$var], 'or');
                             }
                         }
-                        $this->addWhere($builder, $model, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
+                        if(!isset($this->tableNameIterationTracker[$model->getTable()])) {
+                            $this->addWhere($builder, $model, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
+                        }
                     }
                 }
             });
@@ -326,12 +333,20 @@ trait QuerySearchProcessor {
         }
     }
 
-    private function getIteratedTableName(string $table): string
+    private function getIteratedTableName(string $table, bool $incrementAfter = false, $retrievePrev = false): string
     {
+        if($table === $this->getTable()) {
+            return $table;
+        }
         if(!isset($this->tableNameIterationTracker[$table])) {
             $this->tableNameIterationTracker[$table] = 1;
         }
-
-        return "$table"."_".$this->tableNameIterationTracker[$table]++;
+        if($retrievePrev) {
+            return "$table"."_".($this->tableNameIterationTracker[$table] - 1);
+        }
+        if($incrementAfter) {
+            return "$table"."_".$this->tableNameIterationTracker[$table]++;
+        }
+        return "$table"."_".$this->tableNameIterationTracker[$table];
     }
 }
