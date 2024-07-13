@@ -157,15 +157,18 @@ trait QuerySearchProcessor {
             }
         }
         if(isset($this->toolQueryParams['_orderBy']) && !is_null($mapping = $this->mapKeyToHost($this->toolQueryParams['_orderBy']))) {
-            list($model, $var) = $mapping;
+            list($model, $vars) = $mapping;
             $direction = strtolower($this->toolQueryParams['_order'] ?? 'asc') == 'desc' ? 'desc' : 'asc';
-            $this->instanceBuilder->orderBy($model->getTable().'.'.$var, $direction);
+            $varArray = explode(',', $vars);
+            foreach($varArray as $var) {
+                $this->instanceBuilder->orderBy($this->getIteratedTableName($model->getTable(), retrievePrev: true).'.'.$var, $direction);
+            }
             if(isset($this->toolQueryParams['_orderRandom'])) {
                 throw new ConflictingParametersException('Cannot use both _orderBy and _orderRandom');
             }
         }
         if(isset($this->toolQueryParams['_orderRandom'])) {
-
+            $this->inRandomOrder();
         }
     }
 

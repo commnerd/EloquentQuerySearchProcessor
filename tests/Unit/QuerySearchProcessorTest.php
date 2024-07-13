@@ -74,6 +74,18 @@ class QuerySearchProcessorTest extends TestCase
         Simple::processQuery($request)->toSql();
     }
 
+    public function testRandomOrderingDoesntBlowUp()
+    {
+        $request = new Request([
+            '_orderRandom' => true,
+        ]);
+
+        $this->assertEquals(
+            'select * from "simples"',
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
     public function testDescendingOrderQuery()
     {
         $request = new Request([
