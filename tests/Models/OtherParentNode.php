@@ -9,4 +9,9 @@ class OtherParentNode extends Model
     protected $fillable = [
         'name',
     ];
+
+    public function other(): BelongsTo
+    {
+        return $this->belongsTo(AnotherModel::class);
+    }
 }

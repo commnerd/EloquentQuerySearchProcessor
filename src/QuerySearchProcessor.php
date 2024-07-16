@@ -50,7 +50,7 @@ trait QuerySearchProcessor {
             );
         }
         else {
-            $this->instanceBuilder->rightJoin($rightIteratedTableName,
+            $this->instanceBuilder->rightJoin($rightTable.' as '.$rightIteratedTableName,
                 $leftTable.'.'.$leftKey,
                 "=",
                 $rightIteratedTableName.'.'.$rightKey

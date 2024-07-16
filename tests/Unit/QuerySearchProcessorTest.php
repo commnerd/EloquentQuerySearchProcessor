@@ -200,6 +200,26 @@ class QuerySearchProcessorTest extends TestCase
         );
     }
 
+    public function testGenericQueryWithParallelHasManyBelongsToRelations()
+    {
+        $request = new Request([
+            '_with' => 'parent.other,other_parent.other',
+            'something' => 'something',
+        ]);
+
+        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
+            'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
+            'right join "another_models" as "another_models_1" on "parent_nodes_1"."parent_node_id" = "another_models_1"."id" '.
+            'left join "other_parent_nodes" as "other_parent_nodes_1" on "simples"."other_parent_id" = "other_parent_nodes_1"."id" '.
+            'left join "another_models" as "another_models_2" on "other_parent_nodes_1"."other_id" = "another_models_2"."id" '.
+            'where ("another_models_1"."something" = ? or "another_models_2"."something" = ? or "another_models_1"."something" = ? or "another_models_2"."something" = ?)';
+
+        $this->assertEquals(
+            $expected,
+            Simple::processQuery($request)->toSql()
+        );
+    }
+
     public function testHasManyQuery()
     {
         $request = new Request([
@@ -209,7 +229,7 @@ class QuerySearchProcessorTest extends TestCase
 
         $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
             'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
-            'right join "another_models_1" on "parent_nodes_1"."parent_node_id" = "another_models_1"."id" '.
+            'right join "another_models" as "another_models_1" on "parent_nodes_1"."parent_node_id" = "another_models_1"."id" '.
             'where ("another_models_1"."something" like ?)';
 
         $this->assertEquals(
