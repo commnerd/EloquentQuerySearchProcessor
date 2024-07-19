@@ -3,7 +3,6 @@
 namespace Commnerd\QuerySearchProcessor;
 
 use Illuminate\Database\Eloquent\{Builder, Model};
-use Illuminate\Database\Eloquent\Relations\{Relation, BelongsTo};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -109,16 +108,6 @@ trait QuerySearchProcessor {
         return $this->getFillable();
     }
 
-//    private function getTableFromClass(Model $class): string
-//    {
-//        $instance = new $class();
-//        $name = $instance->getTable();
-//        if(isset($this->joins[$name])) {
-//            $name .= '_'.$this->joins[$name]++;
-//        }
-//        return $name;
-//    }
-
     private function queryRelationships(array $withClause): array
     {
         $queriesPieces = [];
@@ -134,7 +123,7 @@ trait QuerySearchProcessor {
                 foreach($this->generalQueryParams as $key => $val) {
                     if($relatedModel->hasAttribute($key)) {
                         $queryPieces[$with] = function ($query) use ($key, $val) {
-                            $this->addWhere($query, $key, $val, 'or');
+                            $this->addWhere($query, $key, $val);
                         };
                     }
                 }
@@ -150,16 +139,6 @@ trait QuerySearchProcessor {
     {
         if(isset($this->toolQueryParams['_with'])) {
             $this->instanceBuilder->with($this->queryRelationships(explode(',', $this->toolQueryParams['_with'])));
-//            if(empty($this->generalQueryParams)) {
-//                $this->instanceBuilder->with($this->toolQueryParams['_with']);
-//                return;
-//            }
-//            $withArray = explode(',',$this->toolQueryParams['_with']);
-//            $callbackMap = [];
-//            foreach($withArray as $with) {
-//                $callbackMap[$with] = $this->processWithRelationship($this, $with);
-//            }
-//            $this->instanceBuilder->with($callbackMap);
         }
     }
 
@@ -168,14 +147,16 @@ trait QuerySearchProcessor {
         return function($query) use ($model, $relationChain) {
             foreach($this->generalQueryParams as $key => $val) {
                 if($model->hasAttribute($key)) {
-                    $this->addWhere($query, $key, $val, 'or');
+                    $this->addWhere($query, $key, $val);
                 }
+            }
+            if(empty($relationChain)) {
+                return;
             }
             $chainArray = explode('.', $relationChain);
             $relationLabel = array_shift($chainArray);
-            $relatedModel = $this->{$relationLabel}()->getRelated();
             $query->with([
-                $relationLabel => $this->processGeneralQueriesWithRelationshipChain($relatedModel, implode('.', $chainArray)),
+                $relationLabel => $this->processGeneralQueriesWithRelationshipChain($model, implode('.', $chainArray)),
             ]);
         };
     }
@@ -211,25 +192,6 @@ trait QuerySearchProcessor {
         return null;
     }
 
-//    private function mapKeyToRelated(string $key, Model $model = null): array | null
-//    {
-//        $class = get_called_class();
-//        if($model != null) {
-//            $class = get_class($model);
-//        }
-//        $instance = new $class();
-//
-//        $keyParts = explode('_', $key);
-//        $targetKey = array_shift($keyParts);
-//        while(sizeof($keyParts) > 0) {
-//            if(method_exists($instance, $targetKey) && $instance->{$targetKey}() instanceof Relationship) {
-//                return array($instance, $targetKey);
-//            }
-//            $targetKey .= '_'.array_shift($keyParts);
-//        }
-//        return null;
-//    }
-
     /**
      * Categorize search terms
      *
@@ -239,7 +201,6 @@ trait QuerySearchProcessor {
     {
         $this->setClassQueryNamespace();
         $this->triageQueryParams();
-        // $this->buildGeneralQueryMappings();
         $this->addQueryModifiers();
     }
 
@@ -258,20 +219,6 @@ trait QuerySearchProcessor {
     {
         if(isset($this->toolQueryParams['_with'])) {
             $this->traverseQuery();
-//            $this->instanceBuilder->where(function ($builder) {
-//                foreach($this->generalQueryMappings as $var => $modelArray) {
-//                    foreach($modelArray as $model) {
-//                        if(isset($this->tableNameIterationTracker[$model->getTable()])) {
-//                            foreach(range(1, $this->tableNameIterationTracker[$model->getTable()] - 1) as $index) {
-//                                $this->addWhere($builder, $model->getTable()."_$index" . '.' . $var, $this->generalQueryParams[$var], 'or');
-//                            }
-//                        }
-//                        if(!isset($this->tableNameIterationTracker[$model->getTable()])) {
-//                            $this->addWhere($builder, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
-//                        }
-//                    }
-//                }
-//            });
         }
         else {
             foreach($this->generalQueryParams as $key => $val) {
@@ -336,21 +283,4 @@ trait QuerySearchProcessor {
             }
         }
     }
-
-//    private function getIteratedTableName(string $table, bool $incrementAfter = false, $retrievePrev = false): string
-//    {
-//        if($table === $this->getTable()) {
-//            return $table;
-//        }
-//        if(!isset($this->tableNameIterationTracker[$table])) {
-//            $this->tableNameIterationTracker[$table] = 1;
-//        }
-//        if($retrievePrev) {
-//            return "$table"."_".($this->tableNameIterationTracker[$table] - 1);
-//        }
-//        if($incrementAfter) {
-//            return "$table"."_".$this->tableNameIterationTracker[$table]++;
-//        }
-//        return "$table"."_".$this->tableNameIterationTracker[$table];
-//    }
 }
