@@ -29,33 +29,44 @@ trait QuerySearchProcessor {
         return $instance->entrypoint($request);
     }
 
-//    private function addGeneralQueryMapping(Model $model, string $param) {
-//        if(method_exists($model, 'getSearchColumns') && in_array($param, $model->getSearchColumns())) {
-//            array_push($this->generalQueryMappings[$param], $model);
-//        }
-//    }
-//
+    private function addGeneralQueryMapping(Model $model, string $param) {
+        if(method_exists($model, 'getSearchColumns') && in_array($param, $model->getSearchColumns())) {
+            array_push($this->generalQueryMappings[$param], $model);
+        }
+    }
 
-//    private function addWhere(Builder $builder, Model $model, string $variable, $value, $context = 'and'): void
-//    {
-//        if(is_string($value) and str_contains($value, '~')) {
-//            $qry = [$variable, 'like', str_replace('~', '%', $value)];
-//        }
-//        else {
-//            $qry = [$variable, $this->toScalar($value)];
-//        }
-//        if($context === 'and') {
-//            $builder->where(...$qry);
-//        }
-//        else {
-//            $builder->orWhere(...$qry);
-//        }
-//    }
+    private function addQueryModifiers(): void
+    {
+        if(isset($this->toolQueryParams['_orderBy'])) {
+            if(isset($this->toolQueryParams['_orderRandom'])) {
+                throw new ConflictingParametersException('Cannot use both _orderBy and _orderRandom');
+            }
+            $direction = strtolower($this->toolQueryParams['_order'] ?? 'asc') == 'desc' ? 'desc' : 'asc';
+            $this->instanceBuilder->orderBy($this->toolQueryParams['_orderBy'], $direction);
+        }
+        if(isset($this->toolQueryParams['_orderRandom'])) {
+            $this->instanceBuilder->inRandomOrder();
+        }
+    }
+
+    private function addWhere(Builder $builder, string $variable, $value, $context = 'and'): void
+    {
+        if(is_string($value) and str_contains($value, '~')) {
+            $qry = [$variable, 'like', str_replace('~', '%', $value)];
+        }
+        else {
+            $qry = [$variable, $this->toScalar($value)];
+        }
+        if($context === 'and') {
+            $builder->where(...$qry);
+        }
+        else {
+            $builder->orWhere(...$qry);
+        }
+    }
 
     private function buildGeneralQueryMappings(): void
     {
-        $model = new static;
-
         foreach(array_keys($this->generalQueryParams) as $param) {
             $this->generalQueryMappings[$param] = [];
             $this->addGeneralQueryMapping($model, $param);
@@ -88,15 +99,16 @@ trait QuerySearchProcessor {
     {
         $this->request = $request;
         $this->instanceBuilder = $this->newQuery();
+        $this->processQueryParams();
         $this->processSearch();
         return $this->instanceBuilder;
     }
 
-//    private function getSearchColumns()
-//    {
-//        return $this->getFillable();
-//    }
-//
+    private function getSearchColumns(): array
+    {
+        return $this->getFillable();
+    }
+
 //    private function getTableFromClass(Model $class): string
 //    {
 //        $instance = new $class();
@@ -107,76 +119,98 @@ trait QuerySearchProcessor {
 //        return $name;
 //    }
 
+    private function queryRelationships(array $withClause): array
+    {
+        $queriesPieces = [];
+        foreach($withClause as $with) {
+            $explodedWith = explode('.', $with);
+            if(sizeof($explodedWith) > 1) {
+                $relationKey = array_shift($explodedWith);
+                $relatedModel = $this->{$relationKey}()->getRelated();
+                $queryPieces[$relationKey] = $this->processGeneralQueriesWithRelationshipChain($relatedModel, implode('.', $explodedWith));
+            }
+            else {
+                $relatedModel = $this->{$with}()->getRelated();
+                foreach($this->generalQueryParams as $key => $val) {
+                    if($relatedModel->hasAttribute($key)) {
+                        $queryPieces[$with] = function ($query) use ($key, $val) {
+                            $this->addWhere($query, $key, $val, 'or');
+                        };
+                    }
+                }
+            }
+        }
+        if(empty($queryPieces)) {
+            return $withClause;
+        }
+        return $queryPieces;
+    }
+
     private function traverseQuery(): void
     {
-        $this->buildGeneralQueryMappings();
         if(isset($this->toolQueryParams['_with'])) {
-            if(empty($this->generalQueryParams)) {
-                $this->instanceBuilder->with($this->toolQueryParams['_with']);
-                return;
-            }
-            $withArray = explode(',',$this->toolQueryParams['_with']);
-            $callbackMap = [];
-            foreach($withArray as $with) {
-                $callbackMap[$with] = $this->processWithRelationship($this, $with);
-            }
-            $this->instanceBuilder->with($callbackMap);
-        }
-        if(isset($this->toolQueryParams['_orderBy'])) {
-            if(isset($this->toolQueryParams['_orderRandom'])) {
-                throw new ConflictingParametersException('Cannot use both _orderBy and _orderRandom');
-            }
-            $direction = strtolower($this->toolQueryParams['_order'] ?? 'asc') == 'desc' ? 'desc' : 'asc';
-            $this->instanceBuilder->orderBy($this->toolQueryParams['_orderBy'], $direction);
-        }
-        if(isset($this->toolQueryParams['_orderRandom'])) {
-            $this->inRandomOrder();
+            $this->instanceBuilder->with($this->queryRelationships(explode(',', $this->toolQueryParams['_with'])));
+//            if(empty($this->generalQueryParams)) {
+//                $this->instanceBuilder->with($this->toolQueryParams['_with']);
+//                return;
+//            }
+//            $withArray = explode(',',$this->toolQueryParams['_with']);
+//            $callbackMap = [];
+//            foreach($withArray as $with) {
+//                $callbackMap[$with] = $this->processWithRelationship($this, $with);
+//            }
+//            $this->instanceBuilder->with($callbackMap);
         }
     }
 
-    private function processWithRelationship(Model $model, string $relationChain): \Closure
+    private function processGeneralQueriesWithRelationshipChain(Model $model, string $relationChain): \Closure
     {
         return function($query) use ($model, $relationChain) {
+            foreach($this->generalQueryParams as $key => $val) {
+                if($model->hasAttribute($key)) {
+                    $this->addWhere($query, $key, $val, 'or');
+                }
+            }
             $chainArray = explode('.', $relationChain);
             $relationLabel = array_shift($chainArray);
-            $relation = $model->getRelation($relationLabel);
+            $relatedModel = $this->{$relationLabel}()->getRelated();
             $query->with([
-                $relationLabel => $this->processWithRelationship($relation->getRelated(), implode('.', $chainArray)),
+                $relationLabel => $this->processGeneralQueriesWithRelationshipChain($relatedModel, implode('.', $chainArray)),
             ]);
         };
     }
 
-//    /**
-//     * Take a key and/or model and map key to model/key
-//     *
-//     * @param string $key
-//     * @param Model|null $model
-//     * @return array|null
-//     */
-//    private function mapKeyToHost(string $key, Model $model = null): array | null
-//    {
-//        $class = get_called_class();
-//        if($model != null) {
-//            $class = get_class($model);
-//        }
-//        $instance = new $class();
-//
-//        if(in_array($key, $instance->getSearchColumns())) {
-//            return array($instance, $key);
-//        }
-//
-//        if(isset($this->toolQueryParams['_with'])) {
-//            if(method_exists($instance, $key) && $instance->{$key}() instanceof Relationship) {
-//                $class = $instance->{$key}()->getRelated();
-//                return $this->mapKeyToHost($key, new $class());
-//            }
-//
-//            return $this->mapKeyToRelated($key, $instance);
-//        }
-//
-//        return null;
-//    }
-//
+    /**
+     * Take a key and/or model and map key to model/key
+     *
+     * @param string $key
+     * @param Model|null $model
+     * @return array|null
+     */
+    private function mapKeyToHost(string $key, Model $model = null): array | null
+    {
+        $class = get_called_class();
+        if($model != null) {
+            $class = get_class($model);
+        }
+        $instance = new $class();
+
+        if(in_array($key, $instance->getSearchColumns())) {
+            return array($instance, $key);
+        }
+
+        if(isset($this->toolQueryParams['_with'])) {
+            if(method_exists($instance, $key) && $instance->{$key}() instanceof Relationship) {
+                $class = $instance->{$key}()->getRelated();
+                return $this->mapKeyToHost($key, new $class());
+            }
+
+            return $this->mapKeyToRelated($key, $instance);
+        }
+
+        return null;
+    }
+
 //    private function mapKeyToRelated(string $key, Model $model = null): array | null
 //    {
 //        $class = get_called_class();
@@ -205,7 +239,8 @@ trait QuerySearchProcessor {
     {
         $this->setClassQueryNamespace();
         $this->triageQueryParams();
-        $this->traverseQuery();
+        // $this->buildGeneralQueryMappings();
+        $this->addQueryModifiers();
     }
 
     /**
@@ -215,36 +250,35 @@ trait QuerySearchProcessor {
      */
     private function processSearch(): void
     {
-        $this->processQueryParams();
         $this->queryNamespacedSearchTerms();
-        // $this->queryGeneralSearchTerms();
+        $this->queryGeneralSearchTerms();
     }
 
-//    private function queryGeneralSearchTerms(): void
-//    {
-//        if(isset($this->toolQueryParams['_with'])) {
+    private function queryGeneralSearchTerms(): void
+    {
+        if(isset($this->toolQueryParams['_with'])) {
+            $this->traverseQuery();
 //            $this->instanceBuilder->where(function ($builder) {
 //                foreach($this->generalQueryMappings as $var => $modelArray) {
 //                    foreach($modelArray as $model) {
 //                        if(isset($this->tableNameIterationTracker[$model->getTable()])) {
 //                            foreach(range(1, $this->tableNameIterationTracker[$model->getTable()] - 1) as $index) {
-//                                $this->addWhere($builder, $model, $model->getTable()."_$index" . '.' . $var, $this->generalQueryParams[$var], 'or');
+//                                $this->addWhere($builder, $model->getTable()."_$index" . '.' . $var, $this->generalQueryParams[$var], 'or');
 //                            }
 //                        }
 //                        if(!isset($this->tableNameIterationTracker[$model->getTable()])) {
-//                            $this->addWhere($builder, $model, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
+//                            $this->addWhere($builder, $model->getTable() . '.' . $var, $this->generalQueryParams[$var], 'or');
 //                        }
 //                    }
 //                }
 //            });
-//        }
-//        else {
-//            foreach($this->generalQueryMappings as $var => $modelArray) {
-//                $model = new static;
-//                $this->addWhere($this->instanceBuilder, $model, $var, $this->generalQueryParams[$var]);
-//            }
-//        }
-//    }
+        }
+        else {
+            foreach($this->generalQueryParams as $key => $val) {
+                $this->addWhere($this->instanceBuilder, $key, $val);
+            }
+        }
+    }
 
     private function queryNamespacedSearchTerms(): void
     {
@@ -253,7 +287,7 @@ trait QuerySearchProcessor {
         foreach($this->namespacedQueryParams as $key => $value) {
             if(!is_null($mapping = $this->mapKeyToHost(substr($key, strlen($this->classQueryNamespace.'_')), $instance))) {
                 list($model, $var) = $mapping;
-                $this->addWhere($this->instanceBuilder, $model, $var, $value);
+                $this->addWhere($this->instanceBuilder, $var, $value);
             }
         }
     }
@@ -269,19 +303,19 @@ trait QuerySearchProcessor {
         $this->classQueryNamespace = $class;
     }
 
-//    /**
-//     * Translate string values to scalars
-//     *
-//     * @param $val
-//     * @return bool|float|int|mixed
-//     */
-//    private function toScalar($val)
-//    {
-//        if($val === 'true') return true;
-//        if($val === 'false') return false;
-//
-//        return (string)$val;
-//    }
+    /**
+     * Translate string values to scalars
+     *
+     * @param $val
+     * @return bool|float|int|mixed
+     */
+    private function toScalar($val)
+    {
+        if($val === 'true') return true;
+        if($val === 'false') return false;
+
+        return (string)$val;
+    }
 
     /**
      * Iterate over query params and triage to appropriate slots

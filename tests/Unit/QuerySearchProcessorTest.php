@@ -104,83 +104,92 @@ class QuerySearchProcessorTest extends TestCase
             'input' => 'something',
         ]);
 
-
         $this->assertEquals(
-            'select * from "simples" where "input" = ?',
-            Simple::processQuery($request)->toSql()
+            [[
+                "type" => "Basic",
+                "column" => "input",
+                "operator" => "=",
+                "value" => "something",
+                "boolean" => "and"
+            ]],
+            Simple::processQuery($request)->getQuery()->wheres
         );
     }
-//
-//    public function testSimpleNamespacedQuery()
-//    {
-//        $request = new Request([
-//            'simple_input' => 'something',
-//        ]);
-//
-//        $this->assertEquals(
-//            'select * from "simples" where "input" = ?',
-//            Simple::processQuery($request)->toSql());
-//    }
-//
-//    public function testSimpleGenericLikeQuery()
-//    {
-//        $request = new Request([
-//            'name' => '~something',
-//        ]);
-//
-//        $this->assertEquals(
-//            'select * from "simples" where "name" like ?',
-//            Simple::processQuery($request)->toSql()
-//        );
-//    }
-//
-//    public function testSimpleNamespacedLikeQuery()
-//    {
-//        $request = new Request([
-//            'simple_name' => 'something~',
-//        ]);
-//
-//        $this->assertEquals(
-//            'select * from "simples" where "name" like ?',
-//            Simple::processQuery($request)->toSql()
-//        );
-//    }
-//
-//    public function testGenericQueryWithSingleRelation()
-//    {
-//        $request = new Request([
-//            '_with' => 'parent',
-//            'name' => 'something~',
-//        ]);
-//
-//        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-//                    'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
-//                    'where ("simples"."name" like ? or "parent_nodes_1"."name" like ?)';
-//
-//        $this->assertEquals(
-//            $expected,
-//            Simple::processQuery($request)->toSql()
-//        );
-//    }
-//
-//    public function testGenericQueryWithDoubleRelation()
-//    {
-//        $request = new Request([
-//            '_with' => 'parent.grandparent',
-//            'name' => 'something~',
-//        ]);
-//
-//        $expected = 'select "simples"."name" as "simples_name", "simples"."input" as "simples_input", "simples".* from "simples" '.
-//                    'left join "parent_nodes" as "parent_nodes_1" on "simples"."parent_id" = "parent_nodes_1"."id" '.
-//                    'left join "grand_parent_nodes" as "grand_parent_nodes_1" on "parent_nodes_1"."grand_parent_node_id" = "grand_parent_nodes_1"."id" '.
-//                    'where ("simples"."name" like ? or "parent_nodes_1"."name" like ? or "grand_parent_nodes_1"."name" like ?)';
-//
-//        $this->assertEquals(
-//            $expected,
-//            Simple::processQuery($request)->toSql()
-//        );
-//    }
-//
+
+    public function testSimpleNamespacedQuery()
+    {
+        $request = new Request([
+            'simple_input' => 'something',
+        ]);
+
+        $this->assertEquals(
+            [[
+                "type" => "Basic",
+                "column" => "input",
+                "operator" => "=",
+                "value" => "something",
+                "boolean" => "and"
+            ]],
+            Simple::processQuery($request)->getQuery()->wheres
+        );
+    }
+
+    public function testSimpleGenericLikeQuery()
+    {
+        $request = new Request([
+            'name' => '~something',
+        ]);
+
+        $this->assertEquals(
+            [[
+                "type" => "Basic",
+                "column" => "name",
+                "operator" => "like",
+                "value" => "%something",
+                "boolean" => "and"
+            ]],
+            Simple::processQuery($request)->getQuery()->wheres
+        );
+    }
+
+    public function testSimpleNamespacedLikeQuery()
+    {
+        $request = new Request([
+            'simple_name' => 'something~',
+        ]);
+
+        $this->assertEquals(
+            [[
+                "type" => "Basic",
+                "column" => "name",
+                "operator" => "like",
+                "value" => "something%",
+                "boolean" => "and"
+            ]],
+            Simple::processQuery($request)->getQuery()->wheres
+        );
+    }
+
+    public function testGenericQueryWithSingleRelation()
+    {
+        $request = new Request([
+            '_with' => 'parent',
+            'name' => 'something~',
+        ]);
+
+        $this->assertNotEmpty(Simple::processQuery($request)->getEagerLoads()['parent']);
+    }
+
+    public function testGenericQueryWithDoubleRelation()
+    {
+        $request = new Request([
+            '_with' => 'parent.grandparent',
+            'name' => 'something~',
+        ]);
+
+        $this->assertNotEmpty(Simple::processQuery($request)->getEagerLoads()['parent']);
+    }
+
 //    public function testGenericQueryWithParallelRelation()
 //    {
 //        $request = new Request([
