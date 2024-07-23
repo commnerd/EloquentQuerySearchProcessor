@@ -318,8 +318,10 @@ trait QuerySearchProcessor {
     {
         if($val === 'true') return true;
         if($val === 'false') return false;
+        if($val === 'undefined') return null;
+        if($val === 'null') return null;
 
-        return (string)$val;
+        return $val;
     }
 
     /**
